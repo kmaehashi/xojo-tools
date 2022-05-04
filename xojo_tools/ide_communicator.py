@@ -40,7 +40,7 @@ class _IDECommunicatorBase(object):
         sock = self._sock
         if sock is not None:
             sock.close()
-            _log('# CLOSE', sock)
+            _log('# CLOSE:', sock)
             self._sock = None
 
     def _write(self, data):
