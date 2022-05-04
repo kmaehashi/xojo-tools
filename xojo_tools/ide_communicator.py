@@ -23,6 +23,7 @@ def _log(*msg):
         return
     debug_out.write(
         '[DEBUG] [{}] {}\n'.format(time.asctime(), ' '.join(map(str, msg))))
+    debug_out.flush()
 
 
 class _IDECommunicatorBase(object):
@@ -47,6 +48,47 @@ class _IDECommunicatorBase(object):
             raise RuntimeError('write failed: connection already closed')
         _log('# SEND:', data)
         self._sock.send(data)
+
+    @classmethod
+    def open(cls, path=None, wait=True, timeout=10):
+        if wait:
+            path = cls._wait_ipc_path(path, timeout)
+            if path is None:
+                raise RuntimeError('socket could not be found within timeout')
+        if path is None:
+            path = cls._find_ipc_path()
+            if path is None:
+                raise RuntimeError('socket could not be found')
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        sock.connect(path)
+        return cls(sock)
+
+    @classmethod
+    def _wait_ipc_path(cls, path, timeout):
+        for i in range(timeout):
+            if path is None:
+                path = cls._find_ipc_path()
+                if path is not None:
+                    return path
+            else:
+                if os.path.exists(path):
+                    return path
+            time.sleep(1)
+        return None
+
+    @classmethod
+    def _find_ipc_path(cls):
+        cands = []
+        cands += [os.environ.get('XOJO_IPCPATH', None)]
+        cands += [
+            os.path.join(base, 'XojoIDE') for base in
+                ['/tmp', '/var/tmp', tempfile.gettempdir(),
+                 os.path.expanduser('~')]]
+        paths = [p for p in cands if p is not None and os.path.exists(p)]
+        if len(paths) != 0:
+            return paths[0]
+        return None
 
 
 class IDECommunicatorV1(_IDECommunicatorBase):
@@ -94,45 +136,8 @@ class IDECommunicatorV2(_IDECommunicatorBase):
                         type(e).__name__, e))
             buf.append(b)
         data = b''.join(buf)
-        _log('IPC RECV:', data)
+        _log('# RECV:', data)
         return json.loads(data)
-
-
-def find_ipc_path():
-    path = os.environ.get('XOJO_IPCPATH')
-    if path is not None:
-        _log('Using XOJO_IPCPATH:', path)
-        return path
-    for base in ['/tmp', '/var/tmp', tempfile.gettempdir(), os.path.expanduser('~')]:
-        path = os.path.join(base, 'XojoIDE')
-        _log('IPC path candidate:', path)
-        if os.path.exists(path):
-            _log('Using IPC path:', path)
-            return path
-    _log('IPC path unavailable')
-    return None
-
-
-def wait_ipc_path(path, timeout):
-    # TODO timeout disable
-    for i in range(timeout):
-        if path is None:
-            path = find_ipc_path()
-        if path is not None and os.path.exists(path):
-            return True
-        time.sleep(1)
-    return False
-
-
-def _open_ipc(path, timeout):
-    if path is None:
-        path = find_ipc_path()
-    if path is None:
-        raise RuntimeError('failed to find IPC socket')
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sock.settimeout(timeout)
-    sock.connect(path)
-    return sock
 
 
 class _CommunicatorCLI(object):
@@ -172,10 +177,11 @@ class _CommunicatorCLI(object):
         return parser
 
     def _send_script(self, comm, script):
+        _log('Command: {}'.format(script))
         tag = comm.send_script(script)
         if tag is not None:
             # V2+
-            self.err.write('Tag: {}\n'.format(tag))
+            _log('Tag: {}'.format(tag))
 
     def _receive(self, comm, count):
         assert not isinstance(comm, IDECommunicatorV1)
@@ -201,17 +207,10 @@ class _CommunicatorCLI(object):
             global debug
             debug = True
 
-        if opts.wait:
-            _log('Waiting for IPC socket...')
-            if not wait_ipc_path(opts.ipc, opts.timeout):
-                self.err.write('Error: timed out\n')
-                return 2
-            self._sock = _open_ipc(path, timeout)
-
         if opts.protocol == 1:
-            comm = IDECommunicatorV1(opts.ipc, opts.timeout)
+            comm = IDECommunicatorV1.open(opts.ipc, wait=opts.wait, timeout=opts.timeout)
         elif opts.protocol == 2:
-            comm = IDECommunicatorV2(opts.ipc, opts.timeout)
+            comm = IDECommunicatorV2.open(opts.ipc, wait=opts.wait, timeout=opts.timeout)
         else:
             assert False
 
