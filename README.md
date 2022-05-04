@@ -1,5 +1,3 @@
-This project is still WIP.
-
 # Xojo CLI Tools
 
 Collection of command-line utilities for Xojo developers.
@@ -32,17 +30,16 @@ $ xojo-ide-communicator --help
 
 Example:
 
-TODO
+* https://github.com/kmaehashi/XojoInstruments/blob/master/.github/workflows/test.sh
 
 Hints:
 
 * Protocol version 1 only supports one-way communication (`--receive` option cannot be specified).
-* Protocol version 2 (implemented in Xojo VERSION TODO or later) supports two-way communication, but be aware that messages sent and received are not one-to-one mapping.
-    * Nothing will be returned by default. You must produce an output using `Print()` in your script; response will be given for each `Print()` call. (TODO is this correct?)
+* Protocol version 2 supports two-way communication, but be aware that messages sent and received are not one-to-one mapping.
+    * Nothing will be returned by default. You must produce an output using `Print()` in your script; response will be given for each `Print()` call.
+    * Some commands may emit extra response; e.g., `OpenFile` may emit "IDE Version Mismatch" message.
     * If you directly interact with the IDE GUI (e.g., manually open a project), responses will be sent without any messages.
 * See [Environment Variables](https://docs.xojo.com/UserGuide:IDE_Communicator#Environment_Variables) for handy environment variables for automated systems.
-
-TODO support disabling timeout
 
 ### xojo-quote
 
