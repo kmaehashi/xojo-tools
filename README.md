@@ -1,3 +1,5 @@
+This project is still WIP.
+
 # Xojo CLI Tools
 
 Collection of command-line utilities for Xojo developers.
