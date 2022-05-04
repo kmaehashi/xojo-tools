@@ -112,7 +112,7 @@ class IDECommunicatorV2(_IDECommunicatorBase):
 
     def send_script(self, script, tag=None):
         if tag is None:
-            tag = 'build_{}_{}'.format(os.getpid(), time.time())
+            tag = 'cmd_{}_{}'.format(os.getpid(), time.time())
         self._write_json({'tag': tag, 'script': script})
         return tag
 
