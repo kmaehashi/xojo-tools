@@ -9,7 +9,7 @@ You may also be interested in [xojo-docker](https://github.com/kmaehashi/xojo-do
 ## Installation
 
 ```sh
-pip install git+https://github.com/kmaehashi/xojo-utils.git
+pip install git+https://github.com/kmaehashi/xojo-tools.git
 ```
 
 ## Commands
